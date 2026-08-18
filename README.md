@@ -8,6 +8,9 @@ An engineering-focused Machine Learning service designed to deploy, serve, and m
 - **Primary Objective:** Build a production-ready REST API with strict request validation, structured logging, schema enforcement, and telemetry monitoring.
 
 ## API Contract (`POST /predict`)
+Input: Accepts a JSON payload containing numerical and categorical features of a property—such as total square footage (gr_liv_area), number of bedrooms (bedrooms), building age (house_age), median area income (med_inc), and neighborhood location (neighborhood).
+
+Output: Returns a JSON response containing the predicted continuous price (predicted_price_usd), currency unit, model metadata (model_version), execution latency (inference_time_ms), and a tracking request_id.
 
 ### Sample Input Payload
 ```json
