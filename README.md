@@ -2,7 +2,7 @@
 
 An engineering-focused Machine Learning service designed to deploy, serve, and monitor a regression model in production.
 
-## Project Scope (Day 1)
+## Project Scope 
 - **Dataset:** California Housing / Kaggle House Prices
 - **Problem Type:** Regression (Continuous Price Prediction)
 - **Primary Objective:** Build a production-ready REST API with strict request validation, structured logging, schema enforcement, and telemetry monitoring.
