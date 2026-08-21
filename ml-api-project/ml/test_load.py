@@ -1,4 +1,5 @@
-# ml/test_load.py
+# The script loaded the binary file from disk directly into memory—without needing to retrain the model or download the original dataset
+
 import joblib
 import pandas as pd
 
