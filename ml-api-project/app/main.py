@@ -1,16 +1,56 @@
-# app/main.py
-from fastapi import FastAPI
+from contextlib import asynccontextmanager
+import joblib
+import pandas as pd
+from fastapi import FastAPI, HTTPException
+
+# Global variable to hold the loaded model pipeline in RAM
+model_pipeline = None
+
+MODEL_PATH = "ml/saved_model/model.joblib"
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # STARTUP: Load the model once when server boots
+    global model_pipeline
+    print(f"--- Loading ML Model from {MODEL_PATH} ---")
+    try:
+        model_pipeline = joblib.load(MODEL_PATH)
+        print("--- Model successfully loaded into memory! ---")
+    except Exception as e:
+        print(f"--- FAILED to load model: {e} ---")
+    
+    yield  # Application runs while sitting here
+    
+    # SHUTDOWN: Clean up resources if needed when server stops
+    print("--- Shutting down application... ---")
 
 app = FastAPI(
     title="House Price Prediction API",
-    description="A minimal API serving machine learning predictions.",
-    version="1.0.0"
+    description="FastAPI application serving real California housing ML predictions.",
+    version="1.0.0",
+    lifespan=lifespan
 )
 
 @app.get("/")
 def root():
-    return {"message": "ML API is alive"}
+    return {"message": "ML API is alive and model is loaded"}
 
 @app.post("/predict")
-def predict():
-    return {"prediction": "hardcoded_result"}  # Simple hardcoded response to test POST route
+def predict(payload: dict):
+    if model_pipeline is None:
+        raise HTTPException(status_code=500, detail="Model is not loaded.")
+
+    try:
+        # Convert incoming raw JSON payload into a pandas DataFrame (2D shape)
+        input_df = pd.DataFrame([payload])
+
+        # Run model inference
+        prediction_raw = model_pipeline.predict(input_df)[0]
+        actual_usd = prediction_raw * 100000
+
+        return {
+            "predicted_price_usd": f"${actual_usd:,.2f}",
+            "raw_prediction_unit": float(prediction_raw)
+        }
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Inference error: {str(e)}")
