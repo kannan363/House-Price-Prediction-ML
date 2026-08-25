@@ -3,14 +3,14 @@ import joblib
 import pandas as pd
 from fastapi import FastAPI, HTTPException
 
-# Global variable to hold the loaded model pipeline in RAM
-model_pipeline = None
+# Import the new Pydantic schema
+from app.models.schemas import PredictionInput
 
+model_pipeline = None
 MODEL_PATH = "ml/saved_model/model.joblib"
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # STARTUP: Load the model once when server boots
     global model_pipeline
     print(f"--- Loading ML Model from {MODEL_PATH} ---")
     try:
@@ -19,9 +19,7 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         print(f"--- FAILED to load model: {e} ---")
     
-    yield  # Application runs while sitting here
-    
-    # SHUTDOWN: Clean up resources if needed when server stops
+    yield
     print("--- Shutting down application... ---")
 
 app = FastAPI(
@@ -35,16 +33,17 @@ app = FastAPI(
 def root():
     return {"message": "ML API is alive and model is loaded"}
 
+# Change parameter from (payload: dict) to (payload: PredictionInput)
 @app.post("/predict")
-def predict(payload: dict):
+def predict(payload: PredictionInput):
     if model_pipeline is None:
         raise HTTPException(status_code=500, detail="Model is not loaded.")
 
     try:
-        # Convert incoming raw JSON payload into a pandas DataFrame (2D shape)
-        input_df = pd.DataFrame([payload])
+        # Convert Pydantic object to dictionary, then into DataFrame
+        input_df = pd.DataFrame([payload.model_dump()])
 
-        # Run model inference
+        
         prediction_raw = model_pipeline.predict(input_df)[0]
         actual_usd = prediction_raw * 100000
 
