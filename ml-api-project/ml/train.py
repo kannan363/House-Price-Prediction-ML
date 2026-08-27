@@ -1,4 +1,3 @@
-# ml/train.py
 import os
 import joblib
 from sklearn.datasets import fetch_california_housing
