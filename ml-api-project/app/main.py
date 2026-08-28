@@ -1,16 +1,13 @@
 from contextlib import asynccontextmanager
-import logging
+import time
 import uuid
 import joblib
 import pandas as pd
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
 
+from app.logging_config import logger
 from app.models.schemas import PredictionInput, PredictionOutput
-
-# Set up logging so real tracebacks stay in your backend server logs
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("ml_api")
 
 model_pipeline = None
 MODEL_PATH = "ml/saved_model/model.joblib"
@@ -30,16 +27,41 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="California Housing ML Service",
-    description="Production-ready FastAPI service for housing valuations.",
+    description="Production-ready FastAPI service for housing valuations with structured logging.",
     version="1.0.0",
     lifespan=lifespan
 )
 
+# MIDDLEWARE: REQUEST LOGGING & UUID TRACING ---
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    # 1. Generate unique request_id and store in request state
+    request_id = str(uuid.uuid4())
+    request.state.request_id = request_id
 
-# Catches ValueErrors (like feature shape or array mismatch issues) globally
+    start_time = time.time()
+    
+    # Process the request
+    response = await call_next(request)
+
+    # 2. Calculate execution duration in milliseconds
+    process_time_ms = (time.time() - start_time) * 1000
+
+    # 3. Log request details
+    logger.info(
+        f"[REQ:{request_id}] {request.method} {request.url.path} "
+        f"- Status: {response.status_code} - Duration: {process_time_ms:.2f}ms"
+    )
+
+    # Attach request_id to HTTP response headers for client tracing
+    response.headers["X-Request-ID"] = request_id
+    return response
+
+# --- CUSTOM EXCEPTION HANDLER ---
 @app.exception_handler(ValueError)
 async def value_error_handler(request: Request, exc: ValueError):
-    logger.error(f"Captured ValueError on path {request.url.path}: {str(exc)}")
+    req_id = getattr(request.state, "request_id", "N/A")
+    logger.error(f"[REQ:{req_id}] ValueError on {request.url.path}: {str(exc)}")
     return JSONResponse(
         status_code=400,
         content={
@@ -65,31 +87,32 @@ def health_check():
         "model_loaded": is_loaded
     }
 
-# --- ATTACH response_model HERE ---
+# --- PREDICT ENDPOINT WITH REQUEST STATE TRACING ---
 @app.post("/predict", response_model=PredictionOutput)
-def predict(payload: PredictionInput):
+def predict(payload: PredictionInput, request: Request):
+    req_id = getattr(request.state, "request_id", str(uuid.uuid4()))
+
     if model_pipeline is None:
-        raise HTTPException(status_code=500, detail="Model is uninitialized or failed to load.")
+        logger.error(f"[REQ:{req_id}] Prediction attempted before model initialization.")
+        raise HTTPException(status_code=500, detail="Model server uninitialized.")
 
     try:
         input_data = pd.DataFrame([payload.model_dump()])
         prediction_raw = model_pipeline.predict(input_data)[0]
         predicted_usd = prediction_raw * 100000
 
-        # Return dict matching PredictionOutput schema
+        logger.info(f"[REQ:{req_id}] Successful prediction: {prediction_raw:.4f} (${predicted_usd:,.2f})")
+
         return {
-            "request_id": str(uuid.uuid4()),
+            "request_id": req_id,
             "predicted_price_usd": f"${predicted_usd:,.2f}",
             "raw_prediction": float(prediction_raw),
             "confidence_score": None,
             "model_version": "1.0.0"
         }
     except Exception as e:
-        # Log the real python traceback on your backend server
-        logger.exception("Inference processing error occurred")
-        
-        # Return a safe, controlled 500 error to the client (no leaked stack traces)
+        logger.exception(f"[REQ:{req_id}] Prediction failed during execution")
         raise HTTPException(
-            status_code=500, 
+            status_code=500,
             detail="Prediction processing failed on server. Internal log generated."
         )
