@@ -1,0 +1,17 @@
+{
+  "model_name": "California Housing Valuation Pipeline",
+  "model_type": "RandomForestRegressor",
+  "model_version": "1.0.0",
+  "features": [
+    "MedInc",
+    "HouseAge",
+    "AveRooms",
+    "AveBedrms",
+    "Population",
+    "AveOccup",
+    "Latitude",
+    "Longitude"
+  ],
+  "target": "MedHouseVal (in $100,000s)",
+  "trained_on": "California Housing Dataset (20,640 samples)"
+}

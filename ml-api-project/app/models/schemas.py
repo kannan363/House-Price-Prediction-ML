@@ -1,4 +1,5 @@
-from typing import Optional
+# app/models/schemas.py
+from typing import List, Optional, Dict, Any
 from pydantic import BaseModel, Field
 
 class PredictionInput(BaseModel):
@@ -25,21 +26,26 @@ class PredictionInput(BaseModel):
             }
         }
 
-#8 RESPONSE SCHEMA ---
 class PredictionOutput(BaseModel):
     request_id: str = Field(..., description="Unique UUID for request tracing")
     predicted_price_usd: str = Field(..., description="Formatted prediction price in USD")
     raw_prediction: float = Field(..., description="Raw output value from Scikit-Learn pipeline")
-    confidence_score: Optional[float] = Field(None, description="Confidence score if applicable (null for regression)")
+    confidence_score: Optional[float] = Field(None, description="Confidence score if applicable")
     model_version: str = Field("1.0.0", description="Version of the model serving inference")
 
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "request_id": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d",
-                "predicted_price_usd": "$415,194.02",
-                "raw_prediction": 4.1519402,
-                "confidence_score": None,
-                "model_version": "1.0.0"
-            }
-        }
+# 11 BATCH & METADATA SCHEMAS
+class PredictionBatchInput(BaseModel):
+    inputs: List[PredictionInput] = Field(..., min_length=1, max_length=100, description="List of 1 to 100 housing samples")
+
+class PredictionBatchOutput(BaseModel):
+    request_id: str = Field(..., description="Unique batch request UUID")
+    batch_size: int = Field(..., description="Number of items processed in this batch")
+    predictions: List[PredictionOutput] = Field(..., description="List of individual prediction outputs")
+
+class ModelInfoOutput(BaseModel):
+    model_name: str = Field(..., description="Name of the machine learning model")
+    model_type: str = Field(..., description="Class type of the Scikit-Learn pipeline")
+    model_version: str = Field(..., description="Semantic version of the model artifact")
+    features: List[str] = Field(..., description="List of expected input feature names in order")
+    target: str = Field(..., description="Target variable name being predicted")
+    trained_on: str = Field(..., description="Dataset name used for training")
