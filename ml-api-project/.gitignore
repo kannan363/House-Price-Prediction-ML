@@ -13,6 +13,9 @@ __pycache__/
 ml/saved_model/*
 !ml/saved_model/.gitkeep
 
+# Un-ignore metadata.json
+!ml/saved_model/metadata.json
+
 # Environment Variables & OS Files
 .env
 .DS_Store

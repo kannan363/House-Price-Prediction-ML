@@ -1,3 +1,4 @@
+# app/routers/v1.py
 from typing import Dict, Any
 import json
 import os
@@ -5,6 +6,7 @@ import uuid
 import pandas as pd
 from fastapi import APIRouter, HTTPException, Request
 
+from app.config import settings
 from app.logging_config import logger
 from app.models.schemas import (
     PredictionInput, 
@@ -15,7 +17,6 @@ from app.models.schemas import (
 )
 
 router = APIRouter(prefix="/api/v1", tags=["v1"])
-METADATA_PATH = "ml/saved_model/metadata.json"
 
 @router.get("/health")
 def health_check(request: Request) -> Dict[str, Any]:
@@ -27,14 +28,13 @@ def health_check(request: Request) -> Dict[str, Any]:
         "version": "v1"
     }
 
-# ---MODEL INFO ENDPOINT ---
 @router.get("/model-info", response_model=ModelInfoOutput)
 def get_model_info():
-    if not os.path.exists(METADATA_PATH):
+    if not os.path.exists(settings.METADATA_PATH):
         raise HTTPException(status_code=404, detail="Model metadata file not found.")
     
     try:
-        with open(METADATA_PATH, "r", encoding="utf-8") as f:
+        with open(settings.METADATA_PATH, "r", encoding="utf-8") as f:
             metadata = json.load(f)
         return metadata
     except Exception as e:
@@ -62,13 +62,12 @@ def predict(payload: PredictionInput, request: Request):
             "predicted_price_usd": f"${predicted_usd:,.2f}",
             "raw_prediction": float(prediction_raw),
             "confidence_score": None,
-            "model_version": "1.0.0"
+            "model_version": settings.API_VERSION
         }
     except Exception as e:
         logger.exception(f"[REQ:{req_id}] [v1] Single prediction failed")
         raise HTTPException(status_code=500, detail="Prediction processing failed.")
 
-# VECTORIZED BATCH PREDICTION ENDPOINT 
 @router.post("/predict-batch", response_model=PredictionBatchOutput)
 def predict_batch(payload: PredictionBatchInput, request: Request):
     from app.main import model_pipeline
@@ -80,12 +79,17 @@ def predict_batch(payload: PredictionBatchInput, request: Request):
 
     batch_size = len(payload.inputs)
 
+    # --- DYNAMIC BATCH SIZE LIMIT ENFORCEMENT ---
+    if batch_size > settings.MAX_BATCH_SIZE:
+        logger.warning(f"[REQ:{req_id}] Batch size {batch_size} exceeds maximum limit of {settings.MAX_BATCH_SIZE}")
+        raise HTTPException(
+            status_code=400,
+            detail=f"Batch size exceeds maximum limit of {settings.MAX_BATCH_SIZE} items. Received {batch_size}."
+        )
+
     try:
-        # Convert list of Pydantic objects into a single multi-row DataFrame for efficient execution
         batch_dicts = [item.model_dump() for item in payload.inputs]
         batch_df = pd.DataFrame(batch_dicts)
-
-        # Call model.predict() ONCE on the entire DataFrame (Vectorized scoring)
         raw_predictions = model_pipeline.predict(batch_df)
 
         results = []
@@ -96,7 +100,7 @@ def predict_batch(payload: PredictionBatchInput, request: Request):
                 "predicted_price_usd": f"${usd_val:,.2f}",
                 "raw_prediction": float(raw_val),
                 "confidence_score": None,
-                "model_version": "1.0.0"
+                "model_version": settings.API_VERSION
             })
 
         logger.info(f"[REQ:{req_id}] [v1] Batch prediction success: Processed {batch_size} samples.")

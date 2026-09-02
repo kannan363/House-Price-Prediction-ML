@@ -6,11 +6,11 @@ import joblib
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
+from app.config import settings
 from app.logging_config import logger
 from app.routers.v1 import router as v1_router
 
 model_pipeline = None
-MODEL_PATH = "ml/saved_model/model.joblib"
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -20,8 +20,8 @@ async def lifespan(app: FastAPI):
     logger.info("==================================================")
     logger.info("--- Initializing Server & Loading Model ---")
     try:
-        model_pipeline = joblib.load(MODEL_PATH)
-        logger.info("--- ML Model successfully loaded into RAM ---")
+        model_pipeline = joblib.load(settings.MODEL_PATH)
+        logger.info(f"--- ML Model successfully loaded from {settings.MODEL_PATH} ---")
     except Exception as e:
         logger.error(f"--- FAILED to load model: {e} ---")
     
@@ -30,9 +30,9 @@ async def lifespan(app: FastAPI):
     logger.info("==================================================\n")
 
 app = FastAPI(
-    title="California Housing ML Service",
-    description="Production-ready FastAPI service for housing valuations with versioned API routes.",
-    version="1.0.0",
+    title=settings.API_TITLE,
+    description=settings.API_DESCRIPTION,
+    version=settings.API_VERSION,
     lifespan=lifespan
 )
 
@@ -74,7 +74,7 @@ async def value_error_handler(request: Request, exc: ValueError):
 @app.get("/")
 def root():
     return {
-        "message": "Welcome to the California Housing Price Prediction API",
+        "message": f"Welcome to {settings.API_TITLE}",
         "docs": "/docs",
         "v1_health": "/api/v1/health",
         "v1_predict": "/api/v1/predict"
