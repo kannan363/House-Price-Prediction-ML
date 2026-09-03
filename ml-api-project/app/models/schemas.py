@@ -33,7 +33,7 @@ class PredictionOutput(BaseModel):
     confidence_score: Optional[float] = Field(None, description="Confidence score if applicable")
     model_version: str = Field("1.0.0", description="Version of the model serving inference")
 
-# 11 BATCH & METADATA SCHEMAS
+#   METADATA SCHEMAS
 class PredictionBatchInput(BaseModel):
     inputs: List[PredictionInput] = Field(..., min_length=1, max_length=100, description="List of 1 to 100 housing samples")
 
