@@ -1,7 +1,7 @@
 # app/models/schemas.py
 from typing import List, Optional, Dict, Any
-from pydantic import BaseModel, Field
-
+from pydantic import BaseModel, Field ,ConfigDict
+ 
 class PredictionInput(BaseModel):
     MedInc: float = Field(..., gt=0, description="Median Income in block group (in $10,000s)")
     HouseAge: float = Field(..., ge=0, le=100, description="Median House Age in block group")
@@ -49,3 +49,24 @@ class ModelInfoOutput(BaseModel):
     features: List[str] = Field(..., description="List of expected input feature names in order")
     target: str = Field(..., description="Target variable name being predicted")
     trained_on: str = Field(..., description="Dataset name used for training")
+
+# v2
+
+class PredictionOutputV2(BaseModel):
+    request_id: str
+    predicted_price_numeric: float = Field(..., description="Predicted house price as a numeric float")
+    price_error_margin_usd: float = Field(..., description="Estimated model prediction margin of error (+/- USD)")
+    raw_prediction: float
+    model_version: str
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "request_id": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d",
+                "predicted_price_numeric": 207200.0,
+                "price_error_margin_usd": 10360.0,
+                "raw_prediction": 2.072,
+                "model_version": "2.0.0"
+            }
+        }
+    )    

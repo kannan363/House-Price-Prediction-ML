@@ -8,7 +8,9 @@ from fastapi.responses import JSONResponse
 
 from app.config import settings
 from app.logging_config import logger
+#routers
 from app.routers.v1 import router as v1_router
+from app.routers.v2 import router as v2_router
 
 model_pipeline = None
 
@@ -38,6 +40,7 @@ app = FastAPI(
 
 # --- INCLUDE ROUTERS ---
 app.include_router(v1_router)
+app.include_router(v2_router)
 
 # --- MIDDLEWARE: REQUEST LOGGING & TRACING ---
 @app.middleware("http")
