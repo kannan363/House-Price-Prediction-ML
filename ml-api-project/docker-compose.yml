@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    volumes:
+      # Bind mount saved models so model updates don't require image rebuilds
+      - ./ml/saved_model:/app/ml/saved_model
+    restart: unless-stopped
