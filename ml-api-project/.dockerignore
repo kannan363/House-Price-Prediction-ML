@@ -1,0 +1,20 @@
+# Local virtual environment
+venv/
+.venv/
+
+# Python cache & build artifacts
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+
+# Git & IDE configs
+.git/
+.gitignore
+.vscode/
+.idea/
+
+# Local test coverage & environment secrets
+.env
+
