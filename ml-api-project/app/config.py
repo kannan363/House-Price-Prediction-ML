@@ -1,4 +1,5 @@
 # app/config.py
+from typing import List
 from functools import lru_cache
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -16,6 +17,10 @@ class Settings(BaseSettings):
     # Operational Limits & Logging
     LOG_LEVEL: str = "INFO"
     MAX_BATCH_SIZE: int = 100
+
+    # Security Settings
+    API_KEY: str = "default_secret_key_change_me"  # Fallback value
+    ALLOWED_ORIGINS: List[str] = ["http://localhost:3000", "http://127.0.0.1:3000"]
 
     # Pydantic Settings configuration to load values from a .env file
     model_config = SettingsConfigDict(

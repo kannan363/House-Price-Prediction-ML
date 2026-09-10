@@ -5,6 +5,7 @@ import uuid
 import joblib
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware  # <--- Added CORSMiddleware
 
 from app.config import settings
 from app.logging_config import logger
@@ -36,6 +37,15 @@ app = FastAPI(
     description=settings.API_DESCRIPTION,
     version=settings.API_VERSION,
     lifespan=lifespan
+)
+
+#  CORS MIDDLEWARE CONFIGURATION ---
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.ALLOWED_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["GET", "POST"],
+    allow_headers=["*"],
 )
 
 # --- INCLUDE ROUTERS ---

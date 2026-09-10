@@ -3,17 +3,9 @@ from typing import List, Optional, Dict, Any
 from pydantic import BaseModel, Field ,ConfigDict
  
 class PredictionInput(BaseModel):
-    MedInc: float = Field(..., gt=0, description="Median Income in block group (in $10,000s)")
-    HouseAge: float = Field(..., ge=0, le=100, description="Median House Age in block group")
-    AveRooms: float = Field(..., gt=0, description="Average number of rooms per household")
-    AveBedrms: float = Field(..., gt=0, description="Average number of bedrooms per household")
-    Population: float = Field(..., ge=0, description="Block group population")
-    AveOccup: float = Field(..., gt=0, description="Average household occupancy rate")
-    Latitude: float = Field(..., ge=32.0, le=42.0, description="California Latitude coordinate")
-    Longitude: float = Field(..., ge=-125.0, le=-114.0, description="California Longitude coordinate")
-
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        extra="forbid",
+        json_schema_extra={
             "example": {
                 "MedInc": 8.3252,
                 "HouseAge": 41.0,
@@ -25,6 +17,17 @@ class PredictionInput(BaseModel):
                 "Longitude": -122.23
             }
         }
+    )
+
+    MedInc: float = Field(..., gt=0, description="Median Income in block group (in $10,000s)")
+    HouseAge: float = Field(..., ge=0, le=100, description="Median House Age in block group")
+    AveRooms: float = Field(..., gt=0, description="Average number of rooms per household")
+    AveBedrms: float = Field(..., gt=0, description="Average number of bedrooms per household")
+    Population: float = Field(..., ge=0, description="Block group population")
+    AveOccup: float = Field(..., gt=0, description="Average household occupancy rate")
+    Latitude: float = Field(..., ge=32.0, le=42.0, description="California Latitude coordinate")
+    Longitude: float = Field(..., ge=-125.0, le=-114.0, description="California Longitude coordinate")
+
 
 class PredictionOutput(BaseModel):
     request_id: str = Field(..., description="Unique UUID for request tracing")
@@ -49,6 +52,7 @@ class ModelInfoOutput(BaseModel):
     features: List[str] = Field(..., description="List of expected input feature names in order")
     target: str = Field(..., description="Target variable name being predicted")
     trained_on: str = Field(..., description="Dataset name used for training")
+   
 
 # v2
 

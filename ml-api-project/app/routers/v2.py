@@ -1,14 +1,16 @@
 # app/routers/v2.py
 import uuid
 import pandas as pd
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request, Depends  # <--- Added Depends
 
 from app.logging_config import logger
+from app.security import verify_api_key  # <--- Added verify_api_key
 from app.models.schemas import PredictionInput, PredictionOutputV2
 
 router = APIRouter(prefix="/api/v2", tags=["v2"])
 
-@router.post("/predict", response_model=PredictionOutputV2)
+# Protected with X-API-Key requirement
+@router.post("/predict", response_model=PredictionOutputV2, dependencies=[Depends(verify_api_key)])
 def predict_v2(payload: PredictionInput, request: Request):
     from app.main import model_pipeline
     req_id = getattr(request.state, "request_id", str(uuid.uuid4()))

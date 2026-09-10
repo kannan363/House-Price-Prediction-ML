@@ -4,10 +4,11 @@ import json
 import os
 import uuid
 import pandas as pd
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request, Depends  # <--- Added Depends
 
 from app.config import settings
 from app.logging_config import logger
+from app.security import verify_api_key  # <--- Added verify_api_key
 from app.models.schemas import (
     PredictionInput, 
     PredictionOutput, 
@@ -18,6 +19,7 @@ from app.models.schemas import (
 
 router = APIRouter(prefix="/api/v1", tags=["v1"])
 
+# Unprotected route for health monitoring
 @router.get("/health")
 def health_check(request: Request) -> Dict[str, Any]:
     from app.main import model_pipeline
@@ -28,6 +30,7 @@ def health_check(request: Request) -> Dict[str, Any]:
         "version": "v1"
     }
 
+# Unprotected route for metadata info
 @router.get("/model-info", response_model=ModelInfoOutput)
 def get_model_info():
     if not os.path.exists(settings.METADATA_PATH):
@@ -41,7 +44,8 @@ def get_model_info():
         logger.exception("Failed to read model metadata")
         raise HTTPException(status_code=500, detail="Error loading model metadata.")
 
-@router.post("/predict", response_model=PredictionOutput)
+# Protected with X-API-Key requirement
+@router.post("/predict", response_model=PredictionOutput, dependencies=[Depends(verify_api_key)])
 def predict(payload: PredictionInput, request: Request):
     from app.main import model_pipeline
     req_id = getattr(request.state, "request_id", str(uuid.uuid4()))
@@ -68,7 +72,8 @@ def predict(payload: PredictionInput, request: Request):
         logger.exception(f"[REQ:{req_id}] [v1] Single prediction failed")
         raise HTTPException(status_code=500, detail="Prediction processing failed.")
 
-@router.post("/predict-batch", response_model=PredictionBatchOutput)
+# Protected with X-API-Key requirement
+@router.post("/predict-batch", response_model=PredictionBatchOutput, dependencies=[Depends(verify_api_key)])
 def predict_batch(payload: PredictionBatchInput, request: Request):
     from app.main import model_pipeline
     req_id = getattr(request.state, "request_id", str(uuid.uuid4()))

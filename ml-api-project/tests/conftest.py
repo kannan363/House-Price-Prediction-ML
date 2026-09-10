@@ -2,11 +2,19 @@
 import pytest
 from fastapi.testclient import TestClient
 from app.main import app
+from app.config import settings
 
 @pytest.fixture(scope="module")
-def client():
-    """Provides a reusable FastAPI TestClient across test modules."""
-    with TestClient(app) as test_client:
+def auth_headers():
+    """Provides valid API key authentication headers."""
+    return {"X-API-Key": settings.API_KEY}
+
+@pytest.fixture(scope="module")
+def client(auth_headers):
+    """Provides a reusable FastAPI TestClient configured with default auth headers."""
+    test_client = TestClient(app)
+    test_client.headers.update(auth_headers)
+    with test_client:
         yield test_client
 
 @pytest.fixture

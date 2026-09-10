@@ -1,0 +1,54 @@
+[2026-09-03 16:46:46] [INFO] [ml_api] ==================================================
+[2026-09-03 16:46:46] [INFO] [ml_api] ============== NEW SERVER SESSION ================
+[2026-09-03 16:46:46] [INFO] [ml_api] ==================================================
+[2026-09-03 16:46:46] [INFO] [ml_api] --- Initializing Server & Loading Model ---
+[2026-09-03 16:46:47] [INFO] [ml_api] --- ML Model successfully loaded from ml/saved_model/model.joblib ---
+[2026-09-03 16:46:47] [INFO] [ml_api] [REQ:a90ea61e-0361-4a53-8e6b-d14b371d927a] [v1] Batch prediction success: Processed 2 samples.
+[2026-09-03 16:46:47] [INFO] [ml_api] [REQ:a90ea61e-0361-4a53-8e6b-d14b371d927a] POST /api/v1/predict-batch - Status: 200 - Duration: 150.76ms
+[2026-09-03 16:46:47] [WARNING] [ml_api] [REQ:001d3bf7-5626-4735-a3b4-b2fd3c47b8b3] Batch size 3 exceeds maximum limit of 2
+[2026-09-03 16:46:47] [INFO] [ml_api] [REQ:001d3bf7-5626-4735-a3b4-b2fd3c47b8b3] POST /api/v1/predict-batch - Status: 400 - Duration: 4.26ms
+[2026-09-03 16:46:47] [INFO] [ml_api] --- Shutting down application ---
+[2026-09-03 16:46:47] [INFO] [ml_api] ==================================================
+
+[2026-09-03 16:46:47] [INFO] [ml_api] ==================================================
+[2026-09-03 16:46:47] [INFO] [ml_api] ============== NEW SERVER SESSION ================
+[2026-09-03 16:46:47] [INFO] [ml_api] ==================================================
+[2026-09-03 16:46:47] [INFO] [ml_api] --- Initializing Server & Loading Model ---
+[2026-09-03 16:46:48] [INFO] [ml_api] --- ML Model successfully loaded from ml/saved_model/model.joblib ---
+[2026-09-03 16:46:48] [INFO] [ml_api] [REQ:e68bbc58-cce1-43c0-bddb-1b51416dc58e] GET /api/v1/health - Status: 200 - Duration: 28.02ms
+[2026-09-03 16:46:48] [INFO] [ml_api] [REQ:d6b2ab13-e689-4ca0-aa81-a5e0585c145c] GET / - Status: 200 - Duration: 12.82ms
+[2026-09-03 16:46:48] [INFO] [ml_api] --- Shutting down application ---
+[2026-09-03 16:46:48] [INFO] [ml_api] ==================================================
+
+[2026-09-03 16:46:48] [INFO] [ml_api] ==================================================
+[2026-09-03 16:46:48] [INFO] [ml_api] ============== NEW SERVER SESSION ================
+[2026-09-03 16:46:48] [INFO] [ml_api] ==================================================
+[2026-09-03 16:46:48] [INFO] [ml_api] --- Initializing Server & Loading Model ---
+[2026-09-03 16:46:49] [INFO] [ml_api] --- ML Model successfully loaded from ml/saved_model/model.joblib ---
+[2026-09-03 16:46:49] [INFO] [ml_api] [REQ:8030bb50-6b01-4114-80f7-602713f904df] GET /api/v1/model-info - Status: 200 - Duration: 5.12ms
+[2026-09-03 16:46:49] [INFO] [ml_api] --- Shutting down application ---
+[2026-09-03 16:46:49] [INFO] [ml_api] ==================================================
+
+[2026-09-03 16:46:49] [INFO] [ml_api] ==================================================
+[2026-09-03 16:46:49] [INFO] [ml_api] ============== NEW SERVER SESSION ================
+[2026-09-03 16:46:49] [INFO] [ml_api] ==================================================
+[2026-09-03 16:46:49] [INFO] [ml_api] --- Initializing Server & Loading Model ---
+[2026-09-03 16:46:49] [INFO] [ml_api] --- ML Model successfully loaded from ml/saved_model/model.joblib ---
+[2026-09-03 16:46:49] [INFO] [ml_api] [REQ:768067b7-afba-4a7e-aa66-7398caa8aedf] [v1] Single prediction success: $427,709.28
+[2026-09-03 16:46:49] [INFO] [ml_api] [REQ:768067b7-afba-4a7e-aa66-7398caa8aedf] POST /api/v1/predict - Status: 200 - Duration: 31.41ms
+[2026-09-03 16:46:50] [INFO] [ml_api] [REQ:da821b4a-7abc-4a69-93c1-0bf4f3e7082f] POST /api/v1/predict - Status: 422 - Duration: 38.56ms
+[2026-09-03 16:46:50] [INFO] [ml_api] [REQ:92a675f0-3e85-4a6f-ae21-3892b4d6025e] POST /api/v1/predict - Status: 422 - Duration: 34.51ms
+[2026-09-03 16:46:50] [INFO] [ml_api] --- Shutting down application ---
+[2026-09-03 16:46:50] [INFO] [ml_api] ==================================================
+
+[2026-09-03 16:46:50] [INFO] [ml_api] ==================================================
+[2026-09-03 16:46:50] [INFO] [ml_api] ============== NEW SERVER SESSION ================
+[2026-09-03 16:46:50] [INFO] [ml_api] ==================================================
+[2026-09-03 16:46:50] [INFO] [ml_api] --- Initializing Server & Loading Model ---
+[2026-09-03 16:46:50] [INFO] [ml_api] --- ML Model successfully loaded from ml/saved_model/model.joblib ---
+[2026-09-03 16:46:50] [INFO] [ml_api] [REQ:8da1b07c-cdc5-4bd7-ab14-5e2abc7a3c46] [v1] Single prediction success: $427,709.28
+[2026-09-03 16:46:50] [INFO] [ml_api] [REQ:8da1b07c-cdc5-4bd7-ab14-5e2abc7a3c46] POST /api/v1/predict - Status: 200 - Duration: 30.36ms
+[2026-09-03 16:46:51] [INFO] [ml_api] [REQ:6aa1a4e2-714b-4ec8-bcd8-1f37b4067664] POST /api/v2/predict - Status: 200 - Duration: 41.74ms
+[2026-09-03 16:46:51] [INFO] [ml_api] --- Shutting down application ---
+[2026-09-03 16:46:51] [INFO] [ml_api] ==================================================
+
