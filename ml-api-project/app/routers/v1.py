@@ -4,11 +4,12 @@ import json
 import os
 import uuid
 import pandas as pd
-from fastapi import APIRouter, HTTPException, Request, Depends  # <--- Added Depends
+from fastapi import APIRouter, HTTPException, Request, Depends
 
 from app.config import settings
 from app.logging_config import logger
-from app.security import verify_api_key  # <--- Added verify_api_key
+from app.security import verify_api_key
+from app.metrics import PREDICTIONS_COUNTER  # Import directly from metrics
 from app.models.schemas import (
     PredictionInput, 
     PredictionOutput, 
@@ -19,7 +20,6 @@ from app.models.schemas import (
 
 router = APIRouter(prefix="/api/v1", tags=["v1"])
 
-# Unprotected route for health monitoring
 @router.get("/health")
 def health_check(request: Request) -> Dict[str, Any]:
     from app.main import model_pipeline
@@ -30,7 +30,6 @@ def health_check(request: Request) -> Dict[str, Any]:
         "version": "v1"
     }
 
-# Unprotected route for metadata info
 @router.get("/model-info", response_model=ModelInfoOutput)
 def get_model_info():
     if not os.path.exists(settings.METADATA_PATH):
@@ -44,13 +43,13 @@ def get_model_info():
         logger.exception("Failed to read model metadata")
         raise HTTPException(status_code=500, detail="Error loading model metadata.")
 
-# Protected with X-API-Key requirement
 @router.post("/predict", response_model=PredictionOutput, dependencies=[Depends(verify_api_key)])
 def predict(payload: PredictionInput, request: Request):
-    from app.main import model_pipeline
+    from app.main import model_pipeline  # ONLY import model_pipeline from main
     req_id = getattr(request.state, "request_id", str(uuid.uuid4()))
 
     if model_pipeline is None:
+        PREDICTIONS_COUNTER.labels(version="v1", status="error").inc()
         logger.error(f"[REQ:{req_id}] Prediction attempted before model initialization.")
         raise HTTPException(status_code=500, detail="Model server uninitialized.")
 
@@ -59,6 +58,7 @@ def predict(payload: PredictionInput, request: Request):
         prediction_raw = model_pipeline.predict(input_data)[0]
         predicted_usd = prediction_raw * 100000
 
+        PREDICTIONS_COUNTER.labels(version="v1", status="success").inc()
         logger.info(f"[REQ:{req_id}] [v1] Single prediction success: ${predicted_usd:,.2f}")
 
         return {
@@ -69,23 +69,24 @@ def predict(payload: PredictionInput, request: Request):
             "model_version": settings.API_VERSION
         }
     except Exception as e:
-        logger.exception(f"[REQ:{req_id}] [v1] Single prediction failed")
-        raise HTTPException(status_code=500, detail="Prediction processing failed.")
+        PREDICTIONS_COUNTER.labels(version="v1", status="error").inc()
+        logger.exception(f"[REQ:{req_id}] [v1] Single prediction failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Prediction processing failed: {str(e)}")
 
-# Protected with X-API-Key requirement
 @router.post("/predict-batch", response_model=PredictionBatchOutput, dependencies=[Depends(verify_api_key)])
 def predict_batch(payload: PredictionBatchInput, request: Request):
-    from app.main import model_pipeline
+    from app.main import model_pipeline  # ONLY import model_pipeline from main
     req_id = getattr(request.state, "request_id", str(uuid.uuid4()))
 
     if model_pipeline is None:
+        PREDICTIONS_COUNTER.labels(version="v1", status="error").inc(len(payload.inputs))
         logger.error(f"[REQ:{req_id}] Batch prediction attempted before model initialization.")
         raise HTTPException(status_code=500, detail="Model server uninitialized.")
 
     batch_size = len(payload.inputs)
 
-    # --- DYNAMIC BATCH SIZE LIMIT ENFORCEMENT ---
     if batch_size > settings.MAX_BATCH_SIZE:
+        PREDICTIONS_COUNTER.labels(version="v1", status="error").inc(batch_size)
         logger.warning(f"[REQ:{req_id}] Batch size {batch_size} exceeds maximum limit of {settings.MAX_BATCH_SIZE}")
         raise HTTPException(
             status_code=400,
@@ -108,6 +109,7 @@ def predict_batch(payload: PredictionBatchInput, request: Request):
                 "model_version": settings.API_VERSION
             })
 
+        PREDICTIONS_COUNTER.labels(version="v1", status="success").inc(batch_size)
         logger.info(f"[REQ:{req_id}] [v1] Batch prediction success: Processed {batch_size} samples.")
 
         return {
@@ -116,5 +118,6 @@ def predict_batch(payload: PredictionBatchInput, request: Request):
             "predictions": results
         }
     except Exception as e:
-        logger.exception(f"[REQ:{req_id}] [v1] Batch prediction failed")
-        raise HTTPException(status_code=500, detail="Batch prediction processing failed.")
+        PREDICTIONS_COUNTER.labels(version="v1", status="error").inc(batch_size)
+        logger.exception(f"[REQ:{req_id}] [v1] Batch prediction failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Batch prediction processing failed: {str(e)}")

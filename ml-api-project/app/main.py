@@ -5,15 +5,21 @@ import uuid
 import joblib
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
-from fastapi.middleware.cors import CORSMiddleware  # <--- Added CORSMiddleware
+from fastapi.middleware.cors import CORSMiddleware
+from prometheus_fastapi_instrumentator import Instrumentator
 
 from app.config import settings
 from app.logging_config import logger
-#routers
 from app.routers.v1 import router as v1_router
 from app.routers.v2 import router as v2_router
 
 model_pipeline = None
+
+# 1. Initialize Instrumentator globally
+instrumentator = Instrumentator(
+    should_group_status_codes=False,
+    should_ignore_untemplated=True,
+)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -39,7 +45,7 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-#  CORS MIDDLEWARE CONFIGURATION ---
+# 2. CORS MIDDLEWARE
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.ALLOWED_ORIGINS,
@@ -48,11 +54,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# --- INCLUDE ROUTERS ---
+# 3. INCLUDE ROUTERS FIRST
 app.include_router(v1_router)
 app.include_router(v2_router)
 
-# --- MIDDLEWARE: REQUEST LOGGING & TRACING ---
+# 4. INSTRUMENT & EXPOSE AT ROOT
+instrumentator.instrument(app).expose(app, include_in_schema=True)
+
+# 5. REQUEST LOGGING MIDDLEWARE
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
     request_id = str(uuid.uuid4())
@@ -70,7 +79,7 @@ async def log_requests(request: Request, call_next):
     response.headers["X-Request-ID"] = request_id
     return response
 
-# --- CUSTOM EXCEPTION HANDLER ---
+# 6. EXCEPTION HANDLERS & ROOT
 @app.exception_handler(ValueError)
 async def value_error_handler(request: Request, exc: ValueError):
     req_id = getattr(request.state, "request_id", "N/A")
@@ -89,6 +98,7 @@ def root():
     return {
         "message": f"Welcome to {settings.API_TITLE}",
         "docs": "/docs",
+        "metrics": "/metrics",
         "v1_health": "/api/v1/health",
         "v1_predict": "/api/v1/predict"
     }
