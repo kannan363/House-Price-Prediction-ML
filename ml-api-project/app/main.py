@@ -1,12 +1,17 @@
 # app/main.py
 from contextlib import asynccontextmanager
+import hashlib
+import json
 import time
 import uuid
+from typing import Dict, Any
+
 import joblib
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from prometheus_fastapi_instrumentator import Instrumentator
+from cachetools import TTLCache
 
 from app.config import settings
 from app.logging_config import logger
@@ -15,11 +20,23 @@ from app.routers.v2 import router as v2_router
 
 model_pipeline = None
 
+# Initialize In-Memory TTL Cache (stores up to 1000 items, expires in 300 seconds)
+prediction_cache = TTLCache(maxsize=1000, ttl=300)
+
+
+def generate_cache_key(payload: Dict[str, Any], version: str = "v1") -> str:
+    """Generate a deterministic MD5 hash key from an input feature payload and API version."""
+    payload_str = json.dumps(payload, sort_keys=True)
+    combined = f"{version}:{payload_str}"
+    return hashlib.md5(combined.encode("utf-8")).hexdigest()
+
+
 # 1. Initialize Instrumentator globally
 instrumentator = Instrumentator(
     should_group_status_codes=False,
     should_ignore_untemplated=True,
 )
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -33,16 +50,17 @@ async def lifespan(app: FastAPI):
         logger.info(f"--- ML Model successfully loaded from {settings.MODEL_PATH} ---")
     except Exception as e:
         logger.error(f"--- FAILED to load model: {e} ---")
-    
+
     yield
     logger.info("--- Shutting down application ---")
     logger.info("==================================================\n")
+
 
 app = FastAPI(
     title=settings.API_TITLE,
     description=settings.API_DESCRIPTION,
     version=settings.API_VERSION,
-    lifespan=lifespan
+    lifespan=lifespan,
 )
 
 # 2. CORS MIDDLEWARE
@@ -60,6 +78,7 @@ app.include_router(v2_router)
 
 # 4. INSTRUMENT & EXPOSE AT ROOT
 instrumentator.instrument(app).expose(app, include_in_schema=True)
+
 
 # 5. REQUEST LOGGING MIDDLEWARE
 @app.middleware("http")
@@ -79,6 +98,7 @@ async def log_requests(request: Request, call_next):
     response.headers["X-Request-ID"] = request_id
     return response
 
+
 # 6. EXCEPTION HANDLERS & ROOT
 @app.exception_handler(ValueError)
 async def value_error_handler(request: Request, exc: ValueError):
@@ -89,9 +109,10 @@ async def value_error_handler(request: Request, exc: ValueError):
         content={
             "error_type": "ValueError",
             "message": "Invalid values provided for processing.",
-            "detail": str(exc)
-        }
+            "detail": str(exc),
+        },
     )
+
 
 @app.get("/")
 def root():
@@ -100,5 +121,5 @@ def root():
         "docs": "/docs",
         "metrics": "/metrics",
         "v1_health": "/api/v1/health",
-        "v1_predict": "/api/v1/predict"
+        "v1_predict": "/api/v1/predict",
     }

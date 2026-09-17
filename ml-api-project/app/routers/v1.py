@@ -9,7 +9,7 @@ from fastapi import APIRouter, HTTPException, Request, Depends
 from app.config import settings
 from app.logging_config import logger
 from app.security import verify_api_key
-from app.metrics import PREDICTIONS_COUNTER  # Import directly from metrics
+from app.metrics import PREDICTIONS_COUNTER
 from app.models.schemas import (
     PredictionInput, 
     PredictionOutput, 
@@ -20,6 +20,7 @@ from app.models.schemas import (
 
 router = APIRouter(prefix="/api/v1", tags=["v1"])
 
+
 @router.get("/health")
 def health_check(request: Request) -> Dict[str, Any]:
     from app.main import model_pipeline
@@ -29,6 +30,7 @@ def health_check(request: Request) -> Dict[str, Any]:
         "model_loaded": is_loaded,
         "version": "v1"
     }
+
 
 @router.get("/model-info", response_model=ModelInfoOutput)
 def get_model_info():
@@ -43,9 +45,10 @@ def get_model_info():
         logger.exception("Failed to read model metadata")
         raise HTTPException(status_code=500, detail="Error loading model metadata.")
 
+
 @router.post("/predict", response_model=PredictionOutput, dependencies=[Depends(verify_api_key)])
 def predict(payload: PredictionInput, request: Request):
-    from app.main import model_pipeline  # ONLY import model_pipeline from main
+    from app.main import model_pipeline, prediction_cache, generate_cache_key
     req_id = getattr(request.state, "request_id", str(uuid.uuid4()))
 
     if model_pipeline is None:
@@ -53,29 +56,45 @@ def predict(payload: PredictionInput, request: Request):
         logger.error(f"[REQ:{req_id}] Prediction attempted before model initialization.")
         raise HTTPException(status_code=500, detail="Model server uninitialized.")
 
+    # 1. Check response cache
+    payload_dict = payload.model_dump()
+    cache_key = generate_cache_key(payload_dict, version="v1")
+    if cache_key in prediction_cache:
+        logger.info(f"[REQ:{req_id}] [v1] Cache hit for key: {cache_key}")
+        cached_res = prediction_cache[cache_key].copy()
+        cached_res["request_id"] = req_id  # Keep current request_id for logging/tracing
+        return cached_res
+
+    # 2. Compute model inference on cache miss
     try:
-        input_data = pd.DataFrame([payload.model_dump()])
+        input_data = pd.DataFrame([payload_dict])
         prediction_raw = model_pipeline.predict(input_data)[0]
         predicted_usd = prediction_raw * 100000
 
         PREDICTIONS_COUNTER.labels(version="v1", status="success").inc()
         logger.info(f"[REQ:{req_id}] [v1] Single prediction success: ${predicted_usd:,.2f}")
 
-        return {
+        result = {
             "request_id": req_id,
             "predicted_price_usd": f"${predicted_usd:,.2f}",
             "raw_prediction": float(prediction_raw),
             "confidence_score": None,
             "model_version": settings.API_VERSION
         }
+
+        # 3. Store result in cache
+        prediction_cache[cache_key] = result
+        return result
+
     except Exception as e:
         PREDICTIONS_COUNTER.labels(version="v1", status="error").inc()
         logger.exception(f"[REQ:{req_id}] [v1] Single prediction failed: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Prediction processing failed: {str(e)}")
 
+
 @router.post("/predict-batch", response_model=PredictionBatchOutput, dependencies=[Depends(verify_api_key)])
 def predict_batch(payload: PredictionBatchInput, request: Request):
-    from app.main import model_pipeline  # ONLY import model_pipeline from main
+    from app.main import model_pipeline
     req_id = getattr(request.state, "request_id", str(uuid.uuid4()))
 
     if model_pipeline is None:
