@@ -10,8 +10,11 @@ __pycache__/
 .pytest_cache/
 
 # Data & Model Binaries (Ignore large binaries, keep directory)
+
 ml/saved_model/*
 !ml/saved_model/.gitkeep
+!ml/saved_model/metadata.json
+!ml/saved_model/*.joblib   <-- ADD THIS LINE (or .pkl depending on your file extension)
 
 # Un-ignore metadata.json
 !ml/saved_model/metadata.json
