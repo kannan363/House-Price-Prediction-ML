@@ -28,6 +28,13 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
 
-    - name: Run Pytest Suite
+    - name: Start FastAPI Background Server & Run Pytest
       run: |
+        # Launch Uvicorn server in background
+        python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 &
+        
+        # Wait up to 10 seconds for the server socket to open
+        timeout 10 bash -c 'until echo > /dev/tcp/127.0.0.1/8000; do sleep 0.5; done'
+        
+        # Run test suite
         pytest -v
