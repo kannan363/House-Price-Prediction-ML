@@ -24,5 +24,11 @@
 
  - **command:**
 -Run Load Test (From Host Terminal)
-"python load_test.py" 
+"python load_test.py"
+
+## 4. Discovered & Fixed Issues
+- **Issue 1 (Authentication):** Load test script initially received `401 Unauthorized` responses due to missing `X-API-Key` headers.
+  - **Fix:** Configured `HEADERS = {"X-API-Key": API_KEY}` matching `settings.API_KEY`.
+- **Issue 2 (IPv6 / IPv4 Name Resolution):** Requests hitting `localhost` failed host resolution in `httpx` while Docker exposed IPv4.
+  - **Fix:** Standardized connection URL target to explicit IPv4 loopback `http://127.0.0.1:8000`. 
 
