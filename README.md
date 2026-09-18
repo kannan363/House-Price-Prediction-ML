@@ -4,7 +4,9 @@ An engineering-focused Machine Learning service designed to deploy, serve, and m
 
 > 🚀 **Live Production Deployment (Render)**
 >
-> **Public API Docs URL:** [https://house-price-prediction-ml-1-p2fj.onrender.com/docs](https://house-price-prediction-ml-1-p2fj.onrender.com/docs)
+> - **Public API Docs URL:** [https://house-price-prediction-ml-1-p2fj.onrender.com/docs](https://house-price-prediction-ml-1-p2fj.onrender.com/docs)
+> - **API Authorizations
+> - **API Key Value:** `my_super_secret_api_key_123`
 
 ## Project Scope 
 - **Dataset:** California Housing / Kaggle House Prices
